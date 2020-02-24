@@ -89,7 +89,7 @@ public:
             nh_.shutdown();
         }
 
-        std::string joint_trajectory_controller_name = nh_.param<std::string>("joint_trajectory_controller_name", "/arm/vel_based_pos_traj_controller");
+        std::string joint_trajectory_controller_name = nh_.param<std::string>("joint_trajectory_controller_name", "vel_based_pos_traj_controller");
 
         if (nh_.hasParam(joint_trajectory_controller_name))
         {
@@ -98,7 +98,7 @@ public:
             ROS_DEBUG_STREAM(nh_.getNamespace() << " supports '" << joint_trajectory_controller_name << "'");
         }
 
-        std::string joint_group_position_controller_name = nh_.param<std::string>("joint_group_position_controller_name", "/arm/joint_group_position_controller");
+        std::string joint_group_position_controller_name = nh_.param<std::string>("joint_group_position_controller_name", "joint_group_position_controller");
 
         if (nh_.hasParam(joint_group_position_controller_name))
         {
@@ -108,7 +108,7 @@ public:
         }
 
 
-        std::string joint_group_velocity_controller_name = nh_.param<std::string>("joint_group_velocity_controller_name", "/arm/joint_group_velocity_controller");
+        std::string joint_group_velocity_controller_name = nh_.param<std::string>("joint_group_velocity_controller_name", "joint_group_velocity_controller");
 
         if (nh_.hasParam(joint_group_velocity_controller_name))
         {
@@ -180,7 +180,7 @@ public:
     }
 
 
-    bool switchController(std::vector< std::string > start_controllers, std::vector< std::string > stop_controllers)
+/*    bool switchController(std::vector< std::string > start_controllers, std::vector< std::string > stop_controllers)
     {
         controller_manager_msgs::SwitchController switch_srv;
         switch_srv.request.start_controllers = start_controllers;
@@ -202,6 +202,7 @@ public:
                 {
                     str_start = start_controllers.back();
                 }
+
                 if (stop_controllers.empty())
                 {
                     str_stop = "no_stop_controller_defined";
@@ -228,17 +229,82 @@ public:
 
         return false;
     }
+*/
+
+    bool switchController(std::vector< std::string > start_controllers, std::vector< std::string > stop_controllers)
+    {
+        controller_manager_msgs::SwitchController switch_srv;
+	std::vector< std::string > empty_controllers = start_controllers;
+	empty_controllers.clear();
+        switch_srv.request.start_controllers = 	empty_controllers;
+        switch_srv.request.stop_controllers = stop_controllers;
+        switch_srv.request.strictness = 2;  // STRICT
+
+        if (switch_client_.call(switch_srv))
+        {  
+            /* First stop whichever controller is running */	
+            if (switch_srv.response.ok)
+            {
+                std::string str_start;
+                std::string str_stop;
+
+                if (stop_controllers.empty())
+                {
+                    str_stop = "no_stop_controller_defined";
+                }
+                else
+                {
+                    str_stop    = stop_controllers.back();
+                }
+
+                //ROS_INFO("Switched Controllers. From %s to %s", str_stop.c_str(), str_start.c_str());
+                ROS_INFO("Controller: %s stopped successfully", str_stop.c_str());
+
+
+	        /* If all goes well now start the desired controller */
+	        switch_srv.request.start_controllers = 	start_controllers;
+	        switch_srv.request.stop_controllers  = empty_controllers;
+	        if (switch_client_.call(switch_srv))
+        	{  
+		        if (start_controllers.empty())
+		        {
+		            str_start = "no_start_controller_defined";
+		        }
+		        else
+		        {
+		            str_start = start_controllers.back();
+		        }
+
+		        current_controller_names_ = start_controllers;
+                	ROS_INFO("Switched Controllers. From %s to %s", str_stop.c_str(), str_start.c_str());
+		        return true;
+		}
+            }
+            else
+            {
+                ROS_ERROR("Could not switch controllers");
+            }
+        }
+        else
+        {
+            ROS_ERROR("ServiceCall failed: switch_controller");
+        }
+
+        return false;
+    }
 
     void cmd_pos_cb(const std_msgs::Float64MultiArray::ConstPtr& msg)
     {
         boost::mutex::scoped_lock lock(mutex_);
         last_pos_command_ = ros::Time::now();
+
     }
 
     void cmd_vel_cb(const std_msgs::Float64MultiArray::ConstPtr& msg)
     {
         boost::mutex::scoped_lock lock(mutex_);
         last_vel_command_ = ros::Time::now();
+	//ROS_INFO("Receiving desired velocitiessss!!!");
     }
 
     void update(const ros::TimerEvent& event)
