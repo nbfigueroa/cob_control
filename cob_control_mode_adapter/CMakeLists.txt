@@ -14,10 +14,21 @@ add_executable(cob_control_mode_adapter_node src/cob_control_mode_adapter_node.c
 add_dependencies(cob_control_mode_adapter_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cob_control_mode_adapter_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
+add_executable(cob_control_mode_adapter_real_node src/cob_control_mode_adapter_real_node.cpp)
+add_dependencies(cob_control_mode_adapter_real_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cob_control_mode_adapter_real_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+
 roslint_cpp()
 
 ### INSTALL ###
 install(TARGETS cob_control_mode_adapter_node
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS cob_control_mode_adapter_real_node
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
